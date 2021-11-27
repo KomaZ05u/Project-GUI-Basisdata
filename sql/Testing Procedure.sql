@@ -271,3 +271,10 @@ as
 insert into customer_account (email, password)
 values (@email, @password);
 
+--get riwayat pesanan
+go
+create proc get_riwayatPesanan
+	@id_pelanggan int
+as
+select order_id, tanggal_kirim, status_order
+from order_product where id_pelanggan = @id_pelanggan;
