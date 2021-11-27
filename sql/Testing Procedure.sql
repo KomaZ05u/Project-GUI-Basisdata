@@ -262,3 +262,12 @@ values (@nama, @jenisKelamin, @tanggalLahir, @nomor, @email, @alamat, @cabang, @
 
 -- exec add_karyawan 'dimastri', 'L', '2000-12-12', '089656565', 'test@gmail.com', 'Malang', 1, 'Manager' 
 
+--tambah akun pelanggan
+go
+create procedure add_customer_account
+	@email varchar(50),
+	@password varchar(255)
+as
+insert into customer_account (email, password)
+values (@email, @password);
+
