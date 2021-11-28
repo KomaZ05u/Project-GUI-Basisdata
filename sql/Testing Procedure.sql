@@ -272,9 +272,55 @@ insert into customer_account (email, password)
 values (@email, @password);
 
 --get riwayat pesanan
+drop procedure get_riwayatPesanan
 go
 create proc get_riwayatPesanan
 	@id_pelanggan int
 as
 select order_id, tanggal_kirim, status_order
 from order_product where id_pelanggan = @id_pelanggan;
+
+--get detail pesanan
+drop proc get_detailpesanan
+go
+create proc get_detailpesanan
+	@order_id int
+as
+select op.order_id,p.product_id, p.nama_produk, p.kategori, p.harga_satuan, op.kuantitas, (p.harga_satuan * op.kuantitas)as subtotal
+from ordered_product op
+join produk p on p.product_id = op.product_id
+where op.order_id = @order_id;
+
+
+--get pesanan aktif
+drop proc get_pesananaktif
+go
+create proc get_pesananaktif
+	@id_pelanggan int
+as
+select tanggal_kirim, order_id
+from order_product
+where id_pelanggan = @id_pelanggan and status_order = 0;
+exec get_pesananaktif 3
+
+
+--varel
+go
+create procedure get_profil_pelanggan @email varchar(100), @password varchar(40) as
+select * from customer_account ca join customer_profile cp on ca.id_pelanggan = cp.id_pelanggan
+where email=@email and password=@password
+go
+
+create procedure update_akun_pelanggan @id int, @email varchar(100), @password varchar(40) as
+update customer_account set email=@email, password=@password
+where id_pelanggan=@id
+go
+
+create procedure update_profil_pelanggan @id int, @nama varchar(20), @tgl date, @nomorHp varchar(14), 
+@nomorRumah varchar (5), @desaKec varchar(30), @kabKota varchar(30), @jalan varchar(50), @jk varchar(1), 
+@kodePos varchar(10) as
+update customer_profile set nama_pelanggan=@nama, tanggal_lahir=@tgl,
+nomor_hp=@nomorHp, nomor_rumah=@nomorRumah ,desa_kecamatan=@desaKec,
+kabupaten_kota=@kabKota, jalan=@jalan, jenis_kelamin=@jk, kode_pos=@kodePos
+where id_pelanggan=@id
+go

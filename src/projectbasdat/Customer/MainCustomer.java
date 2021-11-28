@@ -4,17 +4,272 @@
  */
 package projectbasdat.Customer;
 
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JOptionPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableModel;
+import projectbasdat.DatabaseTools;
+
 /**
  *
  * @author tridi
  */
 public class MainCustomer extends javax.swing.JFrame {
-
+    DatabaseTools db = new DatabaseTools();
+    ArrayList<String> daftarOrderId, daftarOrderIdAktif;
+    String email,password;
+    int id_pelanggan;
+    
     /**
      * Creates new form Main
      */
     public MainCustomer() {
         initComponents();
+        refresh();
+        this.addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                db.close();
+            }
+        });
+    }
+    public MainCustomer(String email, String password) {
+        initComponents();
+        populateProfil(email, password);
+        this.email = email;
+        this.password = password;
+        initId_Pelanggan();
+        refresh();
+        this.addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                db.close();
+            }
+        });
+        
+        //listener untuk tabel order
+        ListSelectionModel modelDetail = tableOrder.getSelectionModel();
+        modelDetail.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent lse) {
+                if (!modelDetail.isSelectionEmpty()) {
+                    int index = modelDetail.getMinSelectionIndex();
+                    String id = daftarOrderId.get(index);
+                    populateTableDetailPesanan(id);
+                }
+            }
+        });
+        
+        //listener untuk tabel order aktif
+        ListSelectionModel modelDetail1 = TableOrderAktif.getSelectionModel();
+        modelDetail1.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent lse) {
+                if (!modelDetail1.isSelectionEmpty()) {
+                    int index = modelDetail1.getMinSelectionIndex();
+                    String id = daftarOrderIdAktif.get(index);
+                    populateTableDetailPesananAktif(id);
+                }
+            }
+        });
+        
+    }
+    
+    private void initId_Pelanggan(){
+        try {
+            String query = String.format("select id_pelanggan from customer_account where email = %s",email);
+            System.out.println(query);
+            ResultSet rs = db.runQuery(query);
+            while (rs.next()){
+                id_pelanggan = Integer.parseInt(rs.getString("id_pelanggan"));
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(MainCustomer.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    public String getEmail(){
+        return email;
+    }
+    
+    private void populateTableOrder(){
+        try {
+            String query = String.format("exec get_riwayatPesanan %s",id_pelanggan);
+            System.out.println(query);
+            ResultSet rs = db.runQuery(query);
+            
+            DefaultTableModel tableModel = (DefaultTableModel)tableOrder.getModel();
+            tableModel.setRowCount(0);
+            daftarOrderId = new ArrayList();
+            int count = 1;
+            String status;
+            while (rs.next()) {
+                daftarOrderId.add(rs.getString("order_id"));
+                if(rs.getString("status_order").equals("1")){
+                    status = "Terkirim";
+                }else{
+                    status = "Sedang dikirim";
+                }
+                tableModel.addRow(new Object[] {
+                    count,
+                    rs.getString("tanggal_kirim"),
+                    status
+                });
+                count++;
+            }
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "populateTableOrder error");
+        }
+    }
+    
+    private void populateTableDetailPesanan(String order_id) {
+        try {
+            String query = String.format("exec get_detailpesanan %s", order_id);
+            System.out.println(query);
+            ResultSet rs = db.runQuery(query);
+            DefaultTableModel tableModel = (DefaultTableModel)TableDetailPesanan.getModel();
+            tableModel.setRowCount(0);
+            int total = 0;
+            int temp;
+            while (rs.next()) {
+                temp = Integer.parseInt(rs.getString("subtotal"));
+                total += temp;
+                tableModel.addRow(new Object[] {
+                    rs.getString("nama_produk"),
+                    rs.getString("kategori"),
+                    rs.getString("kuantitas"),
+                    rs.getString("harga_satuan"),
+                    rs.getString("subtotal")
+                });
+            }
+            totalText.setText(String.valueOf(total));
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "populateTableDetailPesanan error");
+        }
+    }
+    
+    private void pupulateTableOrderAktif(){
+        try {
+            String query = String.format("exec get_pesananaktif %s",id_pelanggan);
+            System.out.println(query);
+            ResultSet rs = db.runQuery(query);
+            
+            DefaultTableModel tableModel = (DefaultTableModel)TableOrderAktif.getModel();
+            tableModel.setRowCount(0);
+            daftarOrderIdAktif = new ArrayList();
+            int count = 1;
+            while (rs.next()) {
+                daftarOrderIdAktif.add(rs.getString("order_id"));               
+                tableModel.addRow(new Object[] {
+                    count,
+                    rs.getString("tanggal_kirim")
+                });
+                count++;
+            }
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "pupulateTableOrderAktif error");
+        }
+    }
+    
+    private void populateTableDetailPesananAktif(String order_id) {
+        try {
+            String query = String.format("exec get_detailpesanan %s", order_id);
+            System.out.println(query);
+            ResultSet rs = db.runQuery(query);
+            DefaultTableModel tableModel = (DefaultTableModel)TableDetailPesananAktif.getModel();
+            tableModel.setRowCount(0);
+            int total = 0;
+            int temp;
+            while (rs.next()) {
+                temp = Integer.parseInt(rs.getString("subtotal"));
+                total += temp;
+                tableModel.addRow(new Object[] {
+                    rs.getString("nama_produk"),
+                    rs.getString("kategori"),
+                    rs.getString("kuantitas"),
+                    rs.getString("harga_satuan"),
+                    rs.getString("subtotal")
+                });
+            }
+            TotalTextAktif.setText(String.valueOf(total));
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "populateTableDetailPesananAktif error");
+        }
+    }
+    
+    
+    private void populateProfil(String email, String password){
+        String query = String.format("exec get_profil_pelanggan %s, %s", email, password);
+//        String query=String.format("select * from customer_account ca join customer_profile cp "
+//                + "on ca.id_pelanggan=cp.id_pelanggan "
+//                + " where email= %s and password= %s",e,p);
+        ResultSet rs;
+        try {
+            rs = db.runQuery(query);
+            while(rs.next()){
+            textUsername.setText(rs.getString("nama_pelanggan"));
+            textEmail.setText(rs.getString("email"));
+            textPassword.setText(rs.getString("password"));
+            textNama.setText(rs.getString("nama_pelanggan"));
+            comboboxJenisKelamin.setSelectedItem(rs.getString("jenis_kelamin"));
+            textTanggalLahir.setText(rs.getString("tanggal_lahir"));
+            textNomorHp.setText(rs.getString("nomor_hp"));
+            textNomorRumah.setText(rs.getString("nomor_rumah"));
+            textDesaKecamatan.setText(rs.getString("desa_kecamatan"));
+            textKabupatenKota.setText(rs.getString("kabupaten_kota"));
+            textJalan.setText(rs.getString("jalan"));
+            textKodePos.setText(rs.getString("kode_pos"));
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(MainCustomer.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void updateProfil(){;
+        String nama="'"+textNama.getText()+"'";
+        String email="'"+textEmail.getText()+"'";
+        String password="'"+textPassword.getText()+"'";
+        String jk="'"+(String)comboboxJenisKelamin.getSelectedItem()+"'";
+        String tgl="'"+textTanggalLahir.getText()+"'";
+        String nomorHp=textNomorHp.getText();
+        String nomorRumah="'"+textNomorRumah.getText()+"'";
+        String desaKec="'"+textDesaKecamatan.getText()+"'";
+        String kabKota="'"+textKabupatenKota.getText()+"'";
+        String jalan="'"+textJalan.getText()+"'";
+        String kodePos="'"+textKodePos.getText()+"'";
+        
+        String query = String.format("exec get_profil_pelanggan %s, %s", email, password);
+        ResultSet rs;
+        try{
+            rs = db.runQuery(query);
+            rs.next();
+            String id=rs.getString("id_pelanggan");
+            String query2=String.format("exec update_profil_pelanggan %s, %s, %s, %s, %s, %s, %s, %s, %s, %s",
+                id, nama, tgl, nomorHp, nomorRumah, desaKec, kabKota, jalan, jk, kodePos);
+            String query3=String.format("exec update_akun_pelanggan %s, %s, %s", id, email, password);
+            
+            System.out.println(id);
+            System.out.println(query2);
+            System.out.println(query3);
+            db.runUpdateQuery(query2);
+            db.runUpdateQuery(query3);
+            JOptionPane.showMessageDialog(null, "Berhasil");
+            
+        }catch(SQLException ex){
+            Logger.getLogger(MainCustomer.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(null, "Gagal mengupdate");
+        }
+        populateProfil(email, password);
     }
 
     /**
@@ -27,11 +282,10 @@ public class MainCustomer extends javax.swing.JFrame {
     private void initComponents() {
 
         jLabel1 = new javax.swing.JLabel();
-        jTextField4 = new javax.swing.JTextField();
+        textUsername = new javax.swing.JTextField();
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jPanel1 = new javax.swing.JPanel();
         jLabel9 = new javax.swing.JLabel();
-        textJenisKelamin = new javax.swing.JTextField();
         jLabel12 = new javax.swing.JLabel();
         jLabel16 = new javax.swing.JLabel();
         textNomorRumah = new javax.swing.JTextField();
@@ -53,20 +307,21 @@ public class MainCustomer extends javax.swing.JFrame {
         textEmail = new javax.swing.JTextField();
         textJalan = new javax.swing.JTextField();
         jLabel8 = new javax.swing.JLabel();
+        comboboxJenisKelamin = new javax.swing.JComboBox<>();
         jPanel2 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         tableOrder = new javax.swing.JTable();
         jScrollPane2 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
-        jTextField3 = new javax.swing.JTextField();
+        TableDetailPesanan = new javax.swing.JTable();
+        totalText = new javax.swing.JTextField();
         jLabel3 = new javax.swing.JLabel();
         jButton4 = new javax.swing.JButton();
         jPanel4 = new javax.swing.JPanel();
         jScrollPane3 = new javax.swing.JScrollPane();
-        tableOrder1 = new javax.swing.JTable();
+        TableOrderAktif = new javax.swing.JTable();
         jScrollPane4 = new javax.swing.JScrollPane();
-        jTable2 = new javax.swing.JTable();
-        jTextField5 = new javax.swing.JTextField();
+        TableDetailPesananAktif = new javax.swing.JTable();
+        TotalTextAktif = new javax.swing.JTextField();
         jLabel4 = new javax.swing.JLabel();
         jButton5 = new javax.swing.JButton();
         jButton6 = new javax.swing.JButton();
@@ -89,7 +344,7 @@ public class MainCustomer extends javax.swing.JFrame {
 
         jLabel1.setText("Nama Anda");
 
-        jTextField4.setEditable(false);
+        textUsername.setEditable(false);
 
         jLabel9.setText("Desa/Kecamatan");
 
@@ -100,6 +355,11 @@ public class MainCustomer extends javax.swing.JFrame {
         jLabel13.setText("Kode Pos");
 
         jButton2.setText("Edit Data");
+        jButton2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton2ActionPerformed(evt);
+            }
+        });
 
         jLabel5.setText("Nama");
 
@@ -114,6 +374,8 @@ public class MainCustomer extends javax.swing.JFrame {
         jLabel10.setText("Kabupaten/Kota");
 
         jLabel8.setText("Nomor Rumah");
+
+        comboboxJenisKelamin.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "L", "P" }));
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
@@ -143,20 +405,20 @@ public class MainCustomer extends javax.swing.JFrame {
                             .addComponent(textDesaKecamatan)
                             .addComponent(textNomorRumah)
                             .addComponent(textNama)
-                            .addComponent(textJenisKelamin)
                             .addComponent(textTanggalLahir)
                             .addComponent(textNomorHp)
                             .addComponent(textEmail)
-                            .addComponent(textPassword, javax.swing.GroupLayout.PREFERRED_SIZE, 207, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addComponent(textPassword, javax.swing.GroupLayout.PREFERRED_SIZE, 207, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(comboboxJenisKelamin, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGap(104, 104, 104)
                         .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 115, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(433, Short.MAX_VALUE))
+                .addContainerGap(457, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
-                .addContainerGap(61, Short.MAX_VALUE)
+                .addContainerGap(99, Short.MAX_VALUE)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel15)
                     .addComponent(textEmail, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -171,7 +433,7 @@ public class MainCustomer extends javax.swing.JFrame {
                 .addGap(18, 18, 18)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel12)
-                    .addComponent(textJenisKelamin, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(comboboxJenisKelamin, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel6)
@@ -209,10 +471,7 @@ public class MainCustomer extends javax.swing.JFrame {
 
         tableOrder.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null}
+
             },
             new String [] {
                 "nomor", "tanggal kirim", "status order"
@@ -220,18 +479,21 @@ public class MainCustomer extends javax.swing.JFrame {
         ));
         jScrollPane1.setViewportView(tableOrder);
 
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
+        TableDetailPesanan.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null}
+
             },
             new String [] {
                 "Nama Produk", "Kategori", "Kuantitas", "Harga", "Subtotal"
             }
         ));
-        jScrollPane2.setViewportView(jTable1);
+        jScrollPane2.setViewportView(TableDetailPesanan);
+
+        totalText.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                totalTextActionPerformed(evt);
+            }
+        });
 
         jLabel3.setText("Total");
 
@@ -252,7 +514,7 @@ public class MainCustomer extends javax.swing.JFrame {
                         .addGroup(jPanel2Layout.createSequentialGroup()
                             .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 98, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGap(18, 18, 18)
-                            .addComponent(jTextField3))
+                            .addComponent(totalText))
                         .addGroup(jPanel2Layout.createSequentialGroup()
                             .addGap(145, 145, 145)
                             .addComponent(jButton4, javax.swing.GroupLayout.PREFERRED_SIZE, 241, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -270,7 +532,7 @@ public class MainCustomer extends javax.swing.JFrame {
                             .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 406, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(totalText, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addComponent(jLabel3))))
                     .addGap(18, 18, 18)
                     .addComponent(jButton4)
@@ -279,31 +541,25 @@ public class MainCustomer extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("Riwayat Pesanan", jPanel2);
 
-        tableOrder1.setModel(new javax.swing.table.DefaultTableModel(
+        TableOrderAktif.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null},
-                {null, null},
-                {null, null},
-                {null, null}
+
             },
             new String [] {
                 "nomor", "tanggal kirim"
             }
         ));
-        jScrollPane3.setViewportView(tableOrder1);
+        jScrollPane3.setViewportView(TableOrderAktif);
 
-        jTable2.setModel(new javax.swing.table.DefaultTableModel(
+        TableDetailPesananAktif.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null},
-                {null, null, null, null, null}
+
             },
             new String [] {
                 "Nama Produk", "Kategori", "Kuantitas", "Harga", "Subtotal"
             }
         ));
-        jScrollPane4.setViewportView(jTable2);
+        jScrollPane4.setViewportView(TableDetailPesananAktif);
 
         jLabel4.setText("Total");
 
@@ -329,7 +585,7 @@ public class MainCustomer extends javax.swing.JFrame {
                     .addGroup(jPanel4Layout.createSequentialGroup()
                         .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 98, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(jTextField5))
+                        .addComponent(TotalTextAktif))
                     .addGroup(jPanel4Layout.createSequentialGroup()
                         .addGap(145, 145, 145)
                         .addComponent(jButton5, javax.swing.GroupLayout.PREFERRED_SIZE, 241, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -345,7 +601,7 @@ public class MainCustomer extends javax.swing.JFrame {
                         .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 406, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jTextField5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(TotalTextAktif, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(jLabel4))))
                 .addGap(18, 18, 18)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -358,10 +614,7 @@ public class MainCustomer extends javax.swing.JFrame {
 
         jTable7.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
+
             },
             new String [] {
                 "Nama Produk", "Jumlah Stok", "Harga", "Kategori"
@@ -376,10 +629,7 @@ public class MainCustomer extends javax.swing.JFrame {
 
         jTable3.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
+
             },
             new String [] {
                 "Nama Produk", "Jumlah", "Harga", "Subtotal"
@@ -463,7 +713,7 @@ public class MainCustomer extends javax.swing.JFrame {
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 248, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(textUsername, javax.swing.GroupLayout.PREFERRED_SIZE, 248, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(jButton7, javax.swing.GroupLayout.PREFERRED_SIZE, 108, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(26, Short.MAX_VALUE))
@@ -474,7 +724,7 @@ public class MainCustomer extends javax.swing.JFrame {
                 .addGap(25, 25, 25)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(textUsername, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jButton7))
                 .addGap(31, 31, 31)
                 .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 641, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -484,6 +734,19 @@ public class MainCustomer extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+        updateProfil();
+    }//GEN-LAST:event_jButton2ActionPerformed
+
+    private void totalTextActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_totalTextActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_totalTextActionPerformed
+    
+    private void refresh(){
+        populateTableOrder();
+        pupulateTableOrderAktif();
+    }
+    
     /**
      * @param args the command line arguments
      */
@@ -521,6 +784,11 @@ public class MainCustomer extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JTable TableDetailPesanan;
+    private javax.swing.JTable TableDetailPesananAktif;
+    private javax.swing.JTable TableOrderAktif;
+    private javax.swing.JTextField TotalTextAktif;
+    private javax.swing.JComboBox<String> comboboxJenisKelamin;
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
@@ -557,21 +825,14 @@ public class MainCustomer extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane5;
     private javax.swing.JScrollPane jScrollPane7;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JTable jTable1;
-    private javax.swing.JTable jTable2;
     private javax.swing.JTable jTable3;
     private javax.swing.JTable jTable7;
-    private javax.swing.JTextField jTextField3;
-    private javax.swing.JTextField jTextField4;
-    private javax.swing.JTextField jTextField5;
     private javax.swing.JTextField jTextField6;
     private javax.swing.JTextField jTextField7;
     private javax.swing.JTable tableOrder;
-    private javax.swing.JTable tableOrder1;
     private javax.swing.JTextField textDesaKecamatan;
     private javax.swing.JTextField textEmail;
     private javax.swing.JTextField textJalan;
-    private javax.swing.JTextField textJenisKelamin;
     private javax.swing.JTextField textKabupatenKota;
     private javax.swing.JTextField textKodePos;
     private javax.swing.JTextField textNama;
@@ -579,5 +840,7 @@ public class MainCustomer extends javax.swing.JFrame {
     private javax.swing.JTextField textNomorRumah;
     private javax.swing.JTextField textPassword;
     private javax.swing.JTextField textTanggalLahir;
+    private javax.swing.JTextField textUsername;
+    private javax.swing.JTextField totalText;
     // End of variables declaration//GEN-END:variables
 }
