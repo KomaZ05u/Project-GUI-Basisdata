@@ -112,9 +112,9 @@ public class MainCustomer extends javax.swing.JFrame {
             while (rs.next()) {
                 daftarOrderId.add(rs.getString("order_id"));
                 if(rs.getString("status_order").equals("1")){
-                    status = "Terkirim";
+                    status = "Selesai";
                 }else{
-                    status = "Sedang dikirim";
+                    status = "Diproses";
                 }
                 tableModel.addRow(new Object[] {
                     count,
@@ -324,7 +324,7 @@ public class MainCustomer extends javax.swing.JFrame {
         TotalTextAktif = new javax.swing.JTextField();
         jLabel4 = new javax.swing.JLabel();
         jButton5 = new javax.swing.JButton();
-        jButton6 = new javax.swing.JButton();
+        BatalPesananButton = new javax.swing.JButton();
         jPanel3 = new javax.swing.JPanel();
         jScrollPane7 = new javax.swing.JScrollPane();
         jTable7 = new javax.swing.JTable();
@@ -565,7 +565,12 @@ public class MainCustomer extends javax.swing.JFrame {
 
         jButton5.setText("Print Data Pesanan");
 
-        jButton6.setText("Batalkan Pesanan");
+        BatalPesananButton.setText("Batalkan Pesanan");
+        BatalPesananButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                BatalPesananButtonActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
@@ -578,7 +583,7 @@ public class MainCustomer extends javax.swing.JFrame {
                         .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 565, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel4Layout.createSequentialGroup()
                         .addGap(142, 142, 142)
-                        .addComponent(jButton6, javax.swing.GroupLayout.PREFERRED_SIZE, 241, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(BatalPesananButton, javax.swing.GroupLayout.PREFERRED_SIZE, 241, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 67, Short.MAX_VALUE)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jScrollPane4, javax.swing.GroupLayout.PREFERRED_SIZE, 518, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -606,7 +611,7 @@ public class MainCustomer extends javax.swing.JFrame {
                 .addGap(18, 18, 18)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jButton5)
-                    .addComponent(jButton6))
+                    .addComponent(BatalPesananButton))
                 .addContainerGap(56, Short.MAX_VALUE))
         );
 
@@ -741,6 +746,22 @@ public class MainCustomer extends javax.swing.JFrame {
     private void totalTextActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_totalTextActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_totalTextActionPerformed
+
+    private void BatalPesananButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_BatalPesananButtonActionPerformed
+        // TODO add your handling code here:
+        ListSelectionModel modelDetail1 = TableOrderAktif.getSelectionModel();
+        modelDetail1.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent lse) {
+                if (!modelDetail1.isSelectionEmpty()) {
+                    int index = modelDetail1.getMinSelectionIndex();
+                    String id = daftarOrderIdAktif.get(index);
+                    populateTableDetailPesananAktif(id);
+//                    db.runUpdateQuery(String.format("delete from order_product where "));
+                }
+            }
+        });
+    }//GEN-LAST:event_BatalPesananButtonActionPerformed
     
     private void refresh(){
         populateTableOrder();
@@ -784,6 +805,7 @@ public class MainCustomer extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton BatalPesananButton;
     private javax.swing.JTable TableDetailPesanan;
     private javax.swing.JTable TableDetailPesananAktif;
     private javax.swing.JTable TableOrderAktif;
@@ -794,7 +816,6 @@ public class MainCustomer extends javax.swing.JFrame {
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
     private javax.swing.JButton jButton5;
-    private javax.swing.JButton jButton6;
     private javax.swing.JButton jButton7;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;

@@ -14,7 +14,7 @@ import java.util.logging.Logger;
  */
 public class DatabaseTools {
     private String user = "sa";
-    private String password = "DimasTri049";
+    private String password = "1231";
     
     private Connection connection;
     private String connectionUrl = 

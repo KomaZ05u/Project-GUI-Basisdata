@@ -481,7 +481,7 @@
                           </Group>
                           <Group type="102" alignment="0" attributes="0">
                               <EmptySpace min="-2" pref="142" max="-2" attributes="0"/>
-                              <Component id="jButton6" min="-2" pref="241" max="-2" attributes="0"/>
+                              <Component id="BatalPesananButton" min="-2" pref="241" max="-2" attributes="0"/>
                           </Group>
                       </Group>
                       <EmptySpace pref="67" max="32767" attributes="0"/>
@@ -519,7 +519,7 @@
                       <EmptySpace type="separate" max="-2" attributes="0"/>
                       <Group type="103" groupAlignment="0" attributes="0">
                           <Component id="jButton5" min="-2" max="-2" attributes="0"/>
-                          <Component id="jButton6" min="-2" max="-2" attributes="0"/>
+                          <Component id="BatalPesananButton" min="-2" max="-2" attributes="0"/>
                       </Group>
                       <EmptySpace pref="56" max="32767" attributes="0"/>
                   </Group>
@@ -629,10 +629,13 @@
                 <Property name="text" type="java.lang.String" value="Print Data Pesanan"/>
               </Properties>
             </Component>
-            <Component class="javax.swing.JButton" name="jButton6">
+            <Component class="javax.swing.JButton" name="BatalPesananButton">
               <Properties>
                 <Property name="text" type="java.lang.String" value="Batalkan Pesanan"/>
               </Properties>
+              <Events>
+                <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="BatalPesananButtonActionPerformed"/>
+              </Events>
             </Component>
           </SubComponents>
         </Container>

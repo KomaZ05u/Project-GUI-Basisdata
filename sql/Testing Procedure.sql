@@ -271,6 +271,24 @@ as
 insert into customer_account (email, password)
 values (@email, @password);
 
+go
+create proc add_customer_profile
+	@id_pelanggan int,
+	@nama_pelanggan varchar(255),
+	@tanggal_lahir date,
+	@nomor_hp varchar(25),
+	@nomor_rumah varchar(5),
+	@desa_kecamatan varchar(50),
+	@kabupaten_kota varchar(50),
+	@jalan varchar(50),
+	@jenis_kelamin char(1),
+	@kode_pos varchar(5)
+as
+insert into customer_profile (id_pelanggan, nama_pelanggan, tanggal_lahir, nomor_hp, nomor_rumah, desa_kecamatan, kabupaten_kota, jalan, jenis_kelamin, kode_pos)
+values (@id_pelanggan, @nama_pelanggan,@tanggal_lahir ,@nomor_hp ,@nomor_rumah , @desa_kecamatan,@kabupaten_kota , @jalan,@jenis_kelamin ,@kode_pos);
+
+
+
 --get riwayat pesanan
 drop procedure get_riwayatPesanan
 go
@@ -324,3 +342,31 @@ nomor_hp=@nomorHp, nomor_rumah=@nomorRumah ,desa_kecamatan=@desaKec,
 kabupaten_kota=@kabKota, jalan=@jalan, jenis_kelamin=@jk, kode_pos=@kodePos
 where id_pelanggan=@id
 go
+
+
+-- tambah customer
+drop proc add_customer
+go
+create procedure add_customer
+    @email varchar(50), @password varchar(255),
+    @nama varchar(20), @tgl date, @nomorHp varchar(14), 
+    @nomorRumah varchar (5), @desaKec varchar(30), @kabKota varchar(30), 
+    @jalan varchar(50), @jk varchar(1), @kodePos varchar(10)
+as
+begin tran
+begin try
+    insert into customer_account 
+    values (@email, @password);
+
+    declare @id as int = (select max(id_pelanggan) from customer_account)
+
+    insert into customer_profile (id_pelanggan, nama_pelanggan, tanggal_lahir, nomor_hp, nomor_rumah, desa_kecamatan, kabupaten_kota, jalan, jenis_kelamin, kode_pos) 
+    values (@id, @nama, @tgl, @nomorHp, @nomorRumah, @desaKec, @kabKota, @jalan, @jk, @kodePos);
+
+    if @@trancount > 0
+        begin commit tran end
+end try
+begin catch
+    if @@trancount > 0
+        begin rollback tran end
+end catch
